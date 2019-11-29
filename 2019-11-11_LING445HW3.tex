@@ -1,0 +1,665 @@
+\documentclass[12pt, letterpaper]{article} 
+
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{parskip}
+\usepackage{textcomp, listings, hyperref}
+\usepackage{dsfont}
+\usepackage{fancyhdr}
+\usepackage{mathpazo}
+
+\lstset{
+ basicstyle=\ttfamily,
+ columns=fullflexible,
+ upquote,
+ keepspaces,
+ literate={*}{{\char42}}1
+ {-}{{\char45}}1
+}
+
+\begin{document}
+
+\pagestyle{fancy}
+\lhead{LING445\\Assignment 3}
+\rhead{ID:260621270\\ZHU, Jake}
+\paragraph{Problem 1:}
+In this problem set, we are going to be considering a variant on the
+hierarchical bag-of-words model that we looked at in class. In class,
+we used a Dirichlet distribution to define a prior distribution over
+$\theta$, the parameters of the bag of words model. The Dirichlet
+distribution is a continuous distribution on the simplex---it assigns
+probability mass to all the uncountably many points on the simplex.
+
+For this problem set, we will be looking at a considerably simpler
+prior distribution over the parameters $\theta$. Our distribution will
+be \emph{discrete}, and in particular will only assign positive
+probability to a finite number of values of $\theta$. The probability
+distribution is defined in the code below:
+
+\begin{lstlisting}
+(def vocabulary '(call me ishmael))
+
+(def theta1 (list (/ 1 2 ) (/ 1 4 ) (/ 1 4 )))
+(def theta2 (list (/ 1 4 ) (/ 1 2 ) (/ 1 4 )))
+
+(def thetas (list theta1 theta2))
+
+(def theta-prior (list (/ 1 2) (/ 1 2)))
+\end{lstlisting}
+
+Our vocabulary in this case consists of three words. Each value of
+$\theta$ therefore defines a bag of words distribution over sentences
+containing these three words. The first value of $\theta$
+(\texttt{theta1}) assigns $\frac{1}{2}$ probability to the word `call,
+$\frac{1}{4}$ to `me, and $\frac{1}{4}$ to `ishmael. The second value
+of $\theta$ (\texttt{theta2}) assigns $\frac{1}{2}$ probability to
+`me, and $\frac{1}{4}$ to each of the other two words. The two values
+of $\theta$ each have prior probability of $\frac{1}{2}$. \emph{Assume
+  throughout the problem set that the vocabulary and possible values
+  of $\theta$ are fixed to these values above.}
+
+In addition to the code defining the prior distribution over $\theta$,
+we will be using some helper functions defined in class:
+
+\begin{lstlisting}
+(defn score-categorical [outcome outcomes params]
+  (if (empty? params)
+      (throw "no matching outcome")
+      (if (= outcome (first outcomes))
+          (first params)
+          (score-categorical outcome (rest outcomes) (rest params)))))
+
+(defn list-foldr [f base lst]
+  (if (empty? lst)
+      base
+      (f (first lst)
+         (list-foldr f base (rest lst)))))
+
+(defn score-BOW-sentence [sen probabilities]
+  (list-foldr 
+  (fn [word rest-score] 
+     (+ (log2 (score-categorical word vocabulary probabilities))
+        rest-score))
+  0
+  sen))
+
+(defn score-corpus [corpus probabilities]
+  (list-foldr
+  (fn [sen rst]
+     (+ (score-BOW-sentence sen probabilities) rst))
+  0
+  corpus))
+
+(defn logsumexp [log-vals]
+  (let [mx (apply max log-vals)]
+    (+ mx
+      (log2
+          (apply +
+                  (map (fn [z] (Math/pow 2 z))
+                      (map (fn [x] (- x mx)) log-vals)))))))
+\end{lstlisting}
+
+Recall that the function \texttt{score-corpus} is used to compute the
+log probability of a corpus given a particular value of the parameters
+$\theta$. Also recall (from the Discrete Random Variables module) the
+purpose of the function \texttt{logsumexp}, which is used to compute
+the sum of (log) probabilities; you should return to the lecture notes
+if you don't remember what this function is doing. (Note that the
+version of \texttt{logsumexp} here differs slightly from the lecture
+notes, as it does not use the \texttt{\&} notation.)
+
+Our initial corpus will consist of two sentences:
+
+\begin{lstlisting}
+(def my-corpus '((call me)
+                      (call ishmael)))
+\end{lstlisting}
+
+Write a function \texttt{theta-corpus-joint}, which takes three
+arguments: \texttt{theta}, \texttt{corpus}, and
+\texttt{theta-probs}. The argument \texttt{theta} is a value of the
+model parameters $\theta$, and the argument \texttt{corpus} is a list
+of sentences. The argument \texttt{theta-probs} is a prior probability
+distribution over the values of $\theta$. The function should return
+the \textbf{log} of the joint probability
+$\Pr(C=corpus,\theta=theta)$.
+
+Use the chain-rule identity discussed in class:
+$\Pr(C,\theta) = \Pr(C|\theta)\Pr(\theta)$. Assume that the prior
+distribution $\Pr(\theta)$ is defined by the probabilities in
+\texttt{theta-probs}.
+
+After defining this function, call \texttt{(theta-corpus-joint theta1 my-corpus theta-prior)}. This will compute (the log of) the joint
+probability of the model parameters \texttt{theta1} and the corpus
+\texttt{my-corpus}.
+
+\paragraph{Answer 1:}
+\url{https://snipplr.com/view/65234/logarithm-with-base-2-log2/}\begin{lstlisting}
+(defn log2 [n] (/ (Math/log n) (Math/log 2)))
+(defn theta-corpus-joint [theta corpus theta-probs]
+  (if (= theta (first thetas))
+    (+ (score-corpus corpus theta)(log2 (first theta-probs)))
+    (+ (score-corpus corpus theta)(log2 (first (rest theta-probs))))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 2:}
+
+Write a function \texttt{compute-marginal}, which takes two arguments:
+\texttt{corpus} and \texttt{theta-probs}. The argument \texttt{corpus}
+is a list of sentences, and the argument \texttt{theta-probs} is a
+prior probability distribution on values of $\theta$. The function
+should return the \textbf{log} of the marginal likelihood of the
+corpus, when the prior distribution on $\theta$ is given by
+theta-probs. That is, the function should return
+$\log[\sum_{\theta \in \Theta} \Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta)]$.
+\\
+
+\noindent Hint: Use the \texttt{logsumexp} function defined above.
+\\
+
+\noindent After defining \texttt{compute-marginal}, call
+\texttt{(compute-marginal my-corpus theta-prior)}. This will compute
+the marginal likelihood of my-corpus (which was defined above), given
+the prior distribution \texttt{theta-prior}.
+
+\paragraph{Answer 2:}~\begin{lstlisting}
+(defn compute-marginal [corpus theta-probs]
+  (logsumexp (list (theta-corpus-joint theta1 corpus theta-probs)
+    (theta-corpus-joint theta2 corpus theta-probs))))
+(compute-marginal my-corpus theta-prior)
+-6.415037499278844
+(Math/pow 2 (compute-marginal my-corpus theta-prior))
+0.01171875
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 3:}
+
+Write a procedure \texttt{compute-conditional-prob}, which takes three
+arguments: \texttt{theta}, \texttt{corpus}, and
+\texttt{theta-probs}. The arguments have the same interpretation as in
+Problems 1 and 2. The function should return the \textbf{log} of the
+conditional probability of the parameter value theta, given the
+corpus. Remember that the conditional probability is defined by the
+equation:
+
+\begin{equation}
+  \Pr(\Theta=\theta|\mathbf{C}=\texttt{corpus}) = \frac{\Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta)}{\sum_{\theta \in \Theta} \Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta)}
+\end{equation}
+
+\paragraph{Answer 3:}\begin{gather*}
+    \Pr(\Theta=\theta|\mathbf{C}=\texttt{corpus}) = \frac{\Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta)}{\sum_{\theta \in \Theta} \Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta)}\\
+    \log_2(\Pr(\Theta=\theta|\mathbf{C}=\texttt{corpus})) = \log_2\left(\frac{\Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta)}{\sum_{\theta \in \Theta}\Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta)}\right)\\
+    = \log_2(\Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta))-\log_2\left(\sum_{\theta \in \Theta}\Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta)\right)
+\end{gather*}
+\begin{lstlisting}
+(defn compute-conditional-prob [theta corpus theta-probs]
+  (- (theta-corpus-joint theta corpus theta-probs)
+    (compute-marginal corpus theta-probs)))
+(compute-conditional-prob theta1 my-corpus theta-prior)
+-0.5849625007211561
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 4:}
+
+Write a function \texttt{compute-conditional-dist}, which takes two
+arguments: \texttt{corpus} and \texttt{theta-probs}. For every value
+of $\theta$ in \texttt{thetas} (i.e., \texttt{theta1} and
+\texttt{theta2}), it should return the conditional probability of
+$\theta$ given the corpus. That is, it should return a list of
+conditional probabilities of the different values of $\theta$.
+
+\paragraph{Answer 4:}~\begin{lstlisting}
+(defn compute-conditional-dist [corpus theta-probs]
+  (list (compute-conditional-prob theta1 corpus theta-probs)
+    (compute-conditional-prob theta2 corpus theta-probs)))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 5:}
+ 
+Call \texttt{(compute-conditional-dist my-corpus theta-prior)}. What
+do you notice about the conditional distribution over values of
+$\theta$?  Exponentiate the values you get back, so that you can see
+the regular probabilities, rather than just the log
+probabilities. Explain why the conditional distribution looks the way
+it does, with reference to the properties of \texttt{my-corpus}.
+
+\paragraph{Answer 5:}~\begin{lstlisting}
+(compute-conditional-dist my-corpus theta-prior)
+(-0.5849625007211561 -1.584962500721156)
+(defn exponentiate [lst]
+  (if (empty? lst)
+    '()
+    (cons (Math/pow 2 (first lst)) (exponentiate (rest lst)))))
+(exponentiate (compute-conditional-dist my-corpus theta-prior))
+(0.6666666666666667 0.33333333333333337)
+\end{lstlisting}
+\begin{gather*}
+    \theta_1 = \left(\frac{1}{2}, \frac{1}{4}, \frac{1}{4}\right)\\
+    \theta_2 = \left(\frac{1}{4}, \frac{1}{2}, \frac{1}{4}\right)\\
+    \Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta_1) = 2^{-3}\cdot{2^{-3}\cdot{2^{-1}}} = 2^{-7}\\
+    \Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta_2) = 2^{-4}\cdot{2^{-3}\cdot{2^{-1}}} = 2^{-8}\\
+    \sum_{\theta \in \Theta}\Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta) = 2^{-7} + 2^{-8}\\
+    \sum_{\theta \in \Theta}\Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta) = \frac{1}{2^{7}} + \frac{1}{2^{8}}\\
+    \sum_{\theta \in \Theta}\Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta) = \frac{2^{8}+ 2^{7}}{2^{15}}\\
+    \sum_{\theta \in \Theta}\Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta) = \frac{2^{7}\cdot{(2+1)}}{2^{15}}\\
+    \sum_{\theta \in \Theta}\Pr(\mathbf{C}=\texttt{corpus}, \Theta=\theta) = \frac{3}{2^{8}}\\
+    \Pr(\Theta=\theta_1|\mathbf{C}=\texttt{corpus}) = \frac{2^{-7}\cdot{2^{8}}}{3} = \frac{2^{1}}{3}=0.666\\
+    \Pr(\Theta=\theta_2|\mathbf{C}=\texttt{corpus}) = \frac{2^{-8}\cdot{2^{8}}}{3} = \frac{2^{0}}{3}=0.333
+\end{gather*}
+
+The Conditional Distribution looks the way it does because of the values of $\theta_1$ and $\theta_2$. Mathematically, it is proven above. 
+\begin{gather*}
+    \Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta_1) > \Pr(\mathbf{C}=\texttt{corpus},\Theta=\theta_2)\\
+    \therefore \Pr(\Theta=\theta_1|\mathbf{C}=\texttt{corpus}) > \Pr(\Theta=\theta_2|\mathbf{C}=\texttt{corpus})
+\end{gather*}
+
+\hrulefill
+\paragraph{Problem 6:}
+ 
+When you call \texttt{compute-conditional-dist}, you get back a
+probability distribution over values of $\theta$ (the conditional
+distribution over $\theta$ given an observed corpus). This is a
+probability distribution just like any other. In particular, it can be
+used as the prior distribution over values of $\theta$ in a
+hierarchical bag of words model. Given this new hierarchical BOW
+model, we can do all of the things that we normally do with such a
+model. In particular, we can compute the marginal likelihood of a
+corpus under this model. This marginal likelihood is called a
+\emph{posterior predictive distribution}.
+\\
+
+\noindent Below we have defined the skeleton of a function
+\texttt{compute-posterior-predictive}. It takes three arguments:
+\texttt{observed-corpus}, \texttt{new-corpus}, and
+\texttt{theta-probs}. \texttt{observed-corpus} is a corpus which we
+observe, and use to compute a conditional distribution over values of
+$\theta$. Given this conditional distribution over $\theta$, we will
+then compute the marginal likelihood of the corpus
+\texttt{new-corpus}. The procedure
+\texttt{compute-posterior-predictive} should return the marginal
+likelihood of new-corpus given the conditional distribution on
+$\theta$.
+
+\begin{lstlisting}
+(defn compute-posterior-predictive [observed-corpus new-corpus theta-probs]
+  (let [conditional-dist ...
+    (compute-marginal ...
+\end{lstlisting}
+
+\noindent Once you have implemented
+\texttt{compute-posterior-predictive}, call
+\texttt{(compute-posterior- predictive my-corpus my-corpus
+  theta-prior)}. What does this quantity represent? How does its value
+compare to the marginal likelihood that you computed in Problem 2?
+
+\paragraph{Answer 6:}~\begin{lstlisting}
+(defn compute-posterior-predictive [observed-corpus new-corpus theta-probs]
+  (let [conditional-dist (exponentiate 
+    (compute-conditional-dist observed-corpus theta-probs))]
+  (compute-marginal new-corpus conditional-dist)))
+(compute-posterior-predictive my-corpus my-corpus theta-prior)
+-6.2630344058337934
+(Math/pow 2 (compute-posterior-predictive my-corpus my-corpus theta-prior))
+0.013020833333333337
+\end{lstlisting}
+
+This is the posterior predictive of \texttt{my-corpus}. As stated in the question, the posterior predictive represents the marginal likelihood of new-corpus with an additional factor of the conditional distribution on $\theta$. In this particular case, the function returns the likelihood that \texttt{new-corpus} will be the same as \texttt{observed-corpus}. The value obtained from Problem 2 is $-6.415037499278844$. The value obtained from \texttt{compute-posterior-predictive} ($-6.2630344058337934$) is slightly greater than the value obtained in 
+Problem 2 due to the fact stated above. Once their decimal values are calculated, it can be seen that the difference is negligible.
+
+\hrulefill
+\paragraph{Problem 7:}
+
+In the previous problems, we have written code that will compute
+marginal and conditional distributions \emph{exactly}, by enumerating
+over all possible values of $\theta$. In the next problems, we will
+develop an alternate approach to computing these
+distributions. Instead of computing these distributions exactly, we
+will approximate them using random sampling.
+\\
+
+\noindent The following functions were defined in class, and will be
+useful for us going forward:
+
+\begin{lstlisting}
+(defn normalize [params]
+  (let [sum (apply + params)]
+    (map (fn [x] (/ x sum)) params)))
+
+(defn flip [weight]
+  (if (< (rand 1) weight)
+      true
+      false))
+
+(defn sample-categorical [outcomes params]
+  (if (flip (first params))
+      (first outcomes)
+      (sample-categorical (rest outcomes) 
+                          (normalize (rest params)))))
+
+(defn repeat [f n]
+  (if (= n 0)
+      '()
+      (cons (f) (repeat f (- n 1)))))
+
+(defn sample-BOW-sentence [len probabilities]
+        (if (= len 0)
+          '()
+          (cons (sample-categorical vocabulary probabilities)
+            (sample-BOW-sentence (- len 1) probabilities))))
+\end{lstlisting}
+
+\noindent Recall that the function \texttt{sample-BOW-sentence
+  samples} a sentence from the bag of words model of length len, given
+the parameters theta.
+\\
+
+\noindent Define a function \texttt{sample-BOW-corpus}, which takes
+three arguments: \texttt{theta}, \texttt{sent-len}, and
+\texttt{corpus-len}. The argument \texttt{theta} is a value of the
+model parameters $\theta$. The arguments \texttt{sent-len} and
+\texttt{corpus-len} are positive integers. The function should return
+a sample corpus from the bag of words model, given the model
+parameters \texttt{theta}. Each sentence should be of length
+\texttt{sent-len} and number of sentences in the corpus should be
+equal to \texttt{corpus-len}. For example, if \texttt{sent-len} equals
+2 and \texttt{corpus-len} equals 2, then this function should return a
+list of 2 sentences, each consisting of 2 words.
+\\
+
+\noindent Hint: Use \texttt{sample-BOW-sentence} and \texttt{repeat}.
+
+\paragraph{Answer 7:}~\begin{lstlisting}
+(defn sample-BOW-corpus [theta sent-len corpus-len]
+  (repeatedly corpus-len (fn [] (sample-BOW-sentence sent-len theta))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 8:}
+
+Below we have defined the skeleton of the function
+\texttt{sample-theta-corpus}. This function takes three arguments:
+\texttt{sent-len} \texttt{corpus-len} and \texttt{theta-probs}. It
+returns a list with two elements: a value of $\theta$ sampled from the
+distribution defined by \texttt{theta-probs}; and a corpus sampled
+from the bag of words model given the sampled $\theta$. (The number of
+sentences in the corpus should equal \texttt{corpus-len}, and each
+sentence should have \texttt{sent-len} words in it.)
+\\
+
+\noindent We will call the return value of this function a \texttt{theta-corpus} pair.
+
+\begin{lstlisting}
+(defn sample-theta-corpus [sent-len corpus-len theta-probs]
+  (let [theta ...
+    (list theta ...
+\end{lstlisting}
+
+\paragraph{Answer 8:}~\begin{lstlisting}
+(defn sample-theta-corpus [sent-len corpus-len theta-probs]
+  (let [theta (sample-categorical thetas theta-probs)]
+  (list theta (sample-BOW-corpus theta sent-len corpus-len))))
+(sample-theta-corpus 2 2 theta1)
+
+(defn sample-thetas-corpora [sample-size sent-len corpus-len theta-probs]
+  (repeatedly sample-size 
+    (fn [] (sample-theta-corpus sent-len corpus-len theta-probs))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 9:}
+
+Below we have defined some useful functions for us. The function
+\texttt{get-theta} takes a \texttt{theta-corpus} pair, and returns the
+value of \texttt{theta} in it. The function \texttt{get-corpus} takes
+a \texttt{theta-corpus} pair, and returns its corpus value. The
+function \texttt{sample-thetas- corpora} samples multiple theta-corpus
+pairs, and returns a list of them. In particular, the number of
+samples it returns equals sample-size.
+
+\begin{lstlisting}
+(defn get-theta [theta-corpus]
+  (first theta-corpus))
+
+(defn get-corpus [theta-corpus]
+  (first (rest theta-corpus)))
+  
+(defn sample-thetas-corpora [sample-size sent-len corpus-len theta-probs]
+  (repeat (fn [] (sample-theta-corpus sent-len corpus-len theta-probs))
+    sample-size))
+\end{lstlisting}
+
+\noindent We are now going to estimate the marginal likelihood of a corpus by
+using random sampling. Here is the general approach that we are going
+to use. We are going to sample some number (for example 1000) of
+\texttt{theta-corpus} pairs. These are 1000 samples from the joint
+distribution defined by the hierarchical bag of words model. We are
+then going to throw away the values of \texttt{theta} that we sampled;
+this will leave us with 1000 corpora sampled from our model.
+\\
+
+\noindent We are going to use these 1000 sampled corpora to estimate
+the probability of a specific target corpus. The process here is
+simple. We just count the number of times that our target corpus
+appears in the 1000 sampled corpora. The ratio of the occurrences of
+the target corpus to the number of total corpora gives us an estimate
+of the target's probability.
+\\
+
+\noindent More formally, let us suppose that we are given a target corpus
+$\mathbf{t}$. We will define the indicator function
+$\mathds{1}_{\mathbf{t}}$ by:
+
+\begin{equation}
+\mathds{1}_{\mathbf{t}}(c) = 
+\begin{cases}
+    1,& \text{if } t = c\\
+    0,              & \text{otherwise}
+\end{cases}
+\end{equation}
+
+\noindent We will sample $n$ corpora $c_1,...,c_n$ from the hierarchical bag of
+words model. We will estimate the marginal likelihood of the target
+corpus $\mathbf{t}$ by the following formula:
+
+\begin{equation}
+\label{eq:montecarlo-marginal}
+\sum_{\theta \in \Theta} \Pr(\mathbf{C}=\mathbf{t}, \Theta=\theta)  \approx \frac{1}{n} \sum_{i}^{n}\mathds{1}_{\mathbf{t}}(c_i) 
+\end{equation}
+
+\noindent Define a procedure \texttt{estimate-corpus-marginal}, which
+takes five arguments: \texttt{corpus}, \texttt{sample-size},
+\texttt{sent-len}, \texttt{corpus-len}, and \texttt{theta-probs}. The
+argument \texttt{corpus} is the target corpus whose marginal
+likelihood we want to estimate. \texttt{sample-size} is the number of
+corpora that we are going to sample from the hierarchical model (its
+value was 1000 in the discussion above). The arguments
+\texttt{corpus-len} and \texttt{sent-len} characterize the number of
+sentences in the corpus and the number of words in each sentence,
+respectively. The argument \texttt{theta-probs} is the prior
+probability distribution over $\theta$ for our hierarchical model.
+\\
+
+\noindent The procedure should return an estimate of the marginal
+likelihood of the target corpus, using the formula defined in Equation
+\ref{eq:montecarlo-marginal}.
+\\
+
+\noindent Hint: Use \texttt{sample-thetas-corpora} to get a list of
+samples of \texttt{theta-corpus pairs}, and then use
+\texttt{get-corpus} to extract the corpus values from these pairs (and
+ignore the \texttt{theta} values).
+
+\paragraph{Answer 9:}~\begin{lstlisting}
+(defn estimate-corpus-marginal [corpus sample-size sent-len 
+  corpus-len theta-probs]
+  (/ (apply + 
+    (let [sample-corpora 
+      (sample-thetas-corpora sample-size sent-len corpus-len theta-probs)] 
+    (map (fn [c] (if (= c corpus) 1 0)) 
+      (map (fn [x] (get-corpus x)) sample-corpora)))) sample-size))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 10:}
+
+\noindent Call \texttt{(estimate-corpus-marginal my-corpus 50 2 2
+  theta-prior)} a number of times. What do you notice? Now call
+\texttt{(estimate-corpus-marginal my-corpus 10000 2 2 theta-prior)} a
+number of times. How do these results compare to the previous ones?
+How do these results compare to the exact marginal
+likelihood that you computed in Problem 2?
+
+\paragraph{Answer 10:}~\begin{lstlisting}
+(estimate-corpus-marginal my-corpus 50 2 2 theta-prior)
+1/50
+(estimate-corpus-marginal my-corpus 50 2 2 theta-prior)
+0
+(estimate-corpus-marginal my-corpus 50 2 2 theta-prior)
+3/50
+(estimate-corpus-marginal my-corpus 50 2 2 theta-prior)
+1/50
+(estimate-corpus-marginal my-corpus 50 2 2 theta-prior)
+0
+(estimate-corpus-marginal my-corpus 10000 2 2 theta-prior)
+109/10000
+(estimate-corpus-marginal my-corpus 10000 2 2 theta-prior)
+97/10000
+(estimate-corpus-marginal my-corpus 10000 2 2 theta-prior)
+51/5000
+(estimate-corpus-marginal my-corpus 10000 2 2 theta-prior)
+3/250
+(estimate-corpus-marginal my-corpus 10000 2 2 theta-prior)
+109/10000
+\end{lstlisting} When \texttt{(estimate-corpus-marginal my-corpus 50 2 2 theta-prior)} is called, an answer of 0 is occasionally obtained. When \texttt{sample-size} goes from $50$ to $10'000$, the occurrence of $0$ is greatly reduced. This can be reflected with a coin-flip. $\Pr(H) = \Pr(T) = 0.500$ It is noted that the probabilities of flipping heads and flipping tails are both $0.500$. If a coin was flipped 3 times, the occurrence of Heads would be $0$, $0.333$, $0.666$ or $1.000$. None of these values align exactly with $0.5$. The sample size is so small that it cannot be reflective of what actually occurs.
+
+Compared to the marginal likelihood that was obtained in Problem 2, the values obtained for \texttt{sample-size} of $10'000$ are close to that of Problem 2. As stated in the previous paragraph, there was a greater error when the \texttt{sample-size} was $50$.
+
+\hrulefill
+\paragraph{Problem 11:}
+These functions will be useful for us in the next problem.
+
+\begin{lstlisting}
+(defn get-count [obs observation-list count]
+  (if (empty? observation-list)
+      count
+      (if (= obs (first observation-list))
+        (get-count obs (rest observation-list) (+ 1 count))
+          (get-count obs (rest observation-list) count))))
+          
+(defn get-counts [outcomes observation-list]
+  (let [count-obs (fn [obs] (get-count obs observation-list 0))]
+    (map count-obs outcomes)))
+\end{lstlisting}
+
+\noindent In Problem 9, we introduced a way of approximating the marginal
+likelihood of a corpus by using random sampling. We can similarly
+approximate a conditional probability distribution by using random
+sampling.
+\\
+
+\noindent Suppose that we have observed a corpus $\mathbf{c}$, and we
+want to compute the conditional probability of a particular
+$\theta$. We can approximate this conditional probability as
+follows. We first sample $n$ theta-corpus pairs. We then remove all of
+the pairs in which the corpus does not match our observed corpus
+$\mathbf{c}$. We finally count the number of times that $\theta$
+occurs in the remaining theta-corpus pairs, and divide by the total
+number of remaining pairs. This process is called \textit{rejection
+  sampling}.
+\\
+
+\noindent 
+Define a function \texttt{rejection-sampler} which has the following
+form:
+ 
+\begin{lstlisting}
+(rejection-sampler theta observed-corpus sample-size sent-len
+  corpus-len theta-probs)
+\end{lstlisting}
+
+\noindent We want to get an estimate of the conditional probability of
+\texttt{theta}, given that we have observed the corpus
+\texttt{observed-corpus}. \texttt{sample-size} is a positive integer,
+and we will estimate this conditional probability by taking
+\texttt{sample-size} samples from the joint distribution on
+\texttt{theta-corpus} pairs. The procedure should filter out any
+\texttt{theta-corpus} pairs in which the corpus does not equal the
+observed corpus. In the remaining pairs, it should then count the
+number of times that theta occurs, and divide by the total number of
+remaining pairs.
+
+
+\noindent Hint: Use \texttt{get-counts} to count the number of
+occurrences of \texttt{theta}.
+
+\paragraph{Answer 11:} ~\begin{lstlisting}
+(defn rm-2 [observed-corpus corpora-pairs]
+  (filter (fn [x] (= observed-corpus (first (rest x)))) corpora-pairs))
+
+(defn rejection-sampler [theta observed-corpus sample-size sent-len 
+  corpus-len theta-probs]
+  (let [corpora-pairs 
+    (sample-thetas-corpora sample-size sent-len corpus-len theta-probs)]
+    (let [matching-corpora (rm-2 observed-corpus corpora-pairs)]
+      (let [sample-theta (map (fn [x] (get-theta x)) matching-corpora)]
+        (if (= 0 (count matching-corpora))
+          Double/NaN
+          (/ (get-count theta sample-theta 0) (count matching-corpora)))))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 12:}
+
+Call \texttt{(rejection-sampler theta1 my-corpus 100 2 2 theta-prior)}
+a number of times. What do you notice? How large does
+\texttt{sample-size} need to be until you get a stable estimate of the
+conditional probability of \texttt{theta1}? Why does it take so many
+samples to get a stable estimate?
+
+\paragraph{Answer 12:}~\begin{lstlisting}
+(rejection-sampler theta1 my-corpus 100 2 2 theta-prior)
+1/3
+(rejection-sampler theta1 my-corpus 100 2 2 theta-prior)
+0
+(rejection-sampler theta1 my-corpus 100 2 2 theta-prior)
+NaN
+(rejection-sampler theta1 my-corpus 200 2 2 theta-prior)
+1/2
+(rejection-sampler theta1 my-corpus 500 2 2 theta-prior)
+1/3
+(rejection-sampler theta1 my-corpus 1000 2 2 theta-prior)
+1/5
+(rejection-sampler theta1 my-corpus 5000 2 2 theta-prior)
+39/53
+(rejection-sampler theta1 my-corpus 10000 2 2 theta-prior)
+69/122
+(rejection-sampler theta1 my-corpus 15000 2 2 theta-prior)
+116/171
+(rejection-sampler theta1 my-corpus 15000 2 2 theta-prior)
+5/8
+(rejection-sampler theta1 my-corpus 15000 2 2 theta-prior)
+125/174
+(rejection-sampler theta1 my-corpus 17500 2 2 theta-prior)
+137/201
+(rejection-sampler theta1 my-corpus 17500 2 2 theta-prior)
+9/14
+(rejection-sampler theta1 my-corpus 17500 2 2 theta-prior)
+44/63
+(rejection-sampler theta1 my-corpus 20000 2 2 theta-prior)
+65/98
+(rejection-sampler theta1 my-corpus 20000 2 2 theta-prior)
+179/276
+(rejection-sampler theta1 my-corpus 20000 2 2 theta-prior)
+154/239
+\end{lstlisting}
+When \texttt{sample-size} equals 100, an unreliable value is obtained. This can be explained by the phenomenon of the coin toss mentioned in Problem 10. It takes many samples in order to get a stable estimate because the more tries increase the occurrence of corpus equalling the observed corpus.
+
+A more stable value is obtained when \texttt{sample-size} equals 17'500. Around this value, it starts to stabilise. When \texttt{sample-size} has a value of 20'000, the \texttt{rejection-sampler} stabilises around $\frac{2}{3}$.
+
+In terms of accuracy, we obtain a more accurate value because we have more values to interpret and sample. When we only had 3 tries from the coin toss, we could only obtain $0$, $0.333$, $0.666$ or $1.000$. There was not a lot to sample. In terms of division and fractions with an increase in size, both our numerator and denominator increase in value to give us a more accurate value.
+\end{document}
+

@@ -1,0 +1,364 @@
+\documentclass[12pt, letterpaper]{article} 
+
+\usepackage[utf8]{inputenc}
+\usepackage{attachfile}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage[british]{babel}
+\usepackage[variablett]{lmodern}
+\usepackage{parskip}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{mathpazo}
+
+\lstset{
+ basicstyle=\ttfamily,
+ columns=fullflexible,
+ upquote,
+ keepspaces,
+ literate={*}{{\char42}}1
+ {-}{{\char45}}1
+}
+
+\begin{document}
+
+\pagestyle{fancy}
+\lhead{LING445\\Assignment 1}
+\rhead{ID:260621270\\ZHU, Jake}
+
+\paragraph{Problem 1:}
+Write a procedure called \texttt{abs} that takes in a number, and
+computes the absolute value of the number. It should do this by
+finding the square root of the square of the argument. (Note: you
+should use the \texttt{Math/sqrt} procedure built in to Clojure, which
+returns the square root of a number.)
+
+\paragraph{Answer 1:}~ 
+\begin{lstlisting}
+(defn abs [x] (Math/sqrt(* x x)))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 2:}
+In both of the following procedure definitions, there are one or more errors of
+some kind. Explain what's wrong and why, and fix it:
+
+\begin{lstlisting}
+(defn take-square
+  (* x x))
+\end{lstlisting}
+
+\begin{lstlisting}
+(defn sum-of-squares [(take-square x) (take-square y)]
+  (+ (take-square x) (take-square y)))
+\end{lstlisting}
+
+\paragraph{Answer 2:}~\begin{lstlisting}
+(defn take-square [x] (* x x))
+\end{lstlisting}
+The problem with the code given in the problem is that there no argument/parameter call. \texttt{Clojure} does not know what is referred by \texttt{x}.
+\begin{lstlisting}
+(defn sum-of-squares [x y] (+ (take-square x) (take-square y)))
+\end{lstlisting}
+The problem with the code given in the problem is that there is a function call where the argument parameter should be instantiated. \texttt{Clojure} needs to know what \texttt{x} and \texttt{y} are.
+
+\hrulefill
+\paragraph{Problem 3:}
+The expression \texttt{(+ 11 2)} has the value \texttt{13}. Write four
+other different Clojure expressions whose values are also the number
+\texttt{13}.  Using \texttt{def} name these expressions
+\texttt{exp-13-1}, \texttt{exp-13-2}, \texttt{exp-13-3}, and
+\texttt{exp-13-4}.
+
+\paragraph{Answer 3:}~\begin{lstlisting}
+(def exp-13-1 (+ 6 7))
+(def exp-13-2 (+ (* 2 6) 1))
+(def exp-13-3 (/ (* 13 13) 13))
+(def exp-13-4 (/ 65 5))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 4:}
+  Write a procedure, called \texttt{third}, that selects the third
+  element of a list. For example, given the list \texttt{'(4 5 6)},
+  third should return the number \texttt{6}.
+
+\paragraph{Answer 4:}~\begin{lstlisting}
+(defn third [lst] (first (rest (rest lst))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 5:}
+Write a procedure, called \texttt{compose}, that takes two one-place
+functions \texttt{f} and \texttt{g} as arguments. It should return a
+new function, the composition of its input functions, which computes
+\texttt{f(g(x))} when passed the argument \texttt{x}. For example, the
+function \texttt{Math/sqrt} (built in to Clojure from Java) takes the
+square root of a number, and the function \texttt{Math/abs} (also
+built in to Clojure) takes the absolute value of a number. If we make
+these functions Clojure native functions using \texttt{fn}, then
+\texttt{((compose Math/sqrt Math/abs) -36)} should return \texttt{6},
+because the square root of the absolute value of \texttt{-36} equals
+\texttt{6}.
+
+\begin{lstlisting}
+(defn sqrt [x] (Math/sqrt x))
+(defn abs [x] (Math/abs x))
+((compose sqrt abs) -36)
+\end{lstlisting}
+\paragraph{Answer 5:}~\begin{lstlisting}
+(defn compose [f g]
+  (fn [& arg]
+    (f (apply g arg))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 6:}
+  Write a procedure \texttt{first-two} that takes a list as its argument,
+  returning a two element list containing the first two elements of
+  the argument. For example, given the list \texttt{'(4 5 6)},
+  \texttt{first-two} should return \texttt{'(4 5)}.
+
+\paragraph{Answer 6:}~\begin{lstlisting}
+(defn first-two [lst]
+  (list (first lst) (first (rest lst))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 7:}
+Write a procedure \texttt{remove-second} that takes a list, and
+returns the same list with the second value removed. For example,
+given \texttt{(list 3 1 4)}, \texttt{remove-second} should return
+\texttt{(list 3 4)}
+
+\paragraph{Answer 7:} \begin{lstlisting}
+(defn remove-second [lst]
+  (cons (first lst) (rest (rest lst))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 8:}
+  Write a procedure \texttt{add-to-end} that takes in two arguments: a
+  list \texttt{l} and a value \texttt{x}. It should return a new list
+  which is the same as \texttt{l}, except that it has \texttt{x} as
+  its final element. For example, \texttt{(add-to-end (list 5 6 4) 0)}
+  should return \texttt{(list 5 6 4 0)}.
+
+\paragraph{Answer 8:}~\begin{lstlisting}
+(defn add-to-end [lst e]
+  (if (empty? lst)
+    (list e)
+    (cons (first lst) (add-to-end (rest lst) e))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 9:}
+  Write a procedure, called \texttt{reverse}, that takes in a list, and returns
+  the reverse of the list. For example, if it takes in \texttt{'(a b c)}, it
+  will output \texttt{'(c b a)}.
+
+\paragraph{Answer 9:}~\begin{lstlisting}
+(defn reverse [lst]
+  (if (empty? lst)
+    (list)
+    (add-to-end (reverse (rest lst)) (first lst))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 10:}
+  Write a procedure, called \texttt{count-to-1}, that takes a positive
+  integer \texttt{n}, and returns a list of the integers counting down
+  from \texttt{n} to \texttt{1}. For example, given input \texttt{3},
+  it will return \texttt{(list 3 2 1)}.
+
+\paragraph{Answer 10:}~\begin{lstlisting}
+(defn count-to-1 [n]
+  (if (zero? n)
+    (list)
+    (cons n (count-to-1 (- n 1)))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 11:}
+  Write a procedure, called \texttt{count-to-n}, that takes a positive
+  integer \texttt{n}, and returns a list of the integers from
+  \texttt{1} to \texttt{n}. For example, given input \texttt{3}, it
+  will return \texttt{(list 1 2 3)}. Hint: Use the procedures
+  \texttt{reverse} and \texttt{count-to-1} that you wrote in the
+  previous problems.
+
+\paragraph{Answer 11:}~\begin{lstlisting}
+(defn count-to-n [n] (reverse (count-to-1 n)))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 12:}
+  Write a procedure, called \texttt{get-max}, that takes a list of numbers, and
+  returns the maximum value.
+
+\paragraph{Answer 12:}~\begin{lstlisting}
+(defn max-int [lst e]
+  (if (empty? lst)
+    e
+    (if (> (first lst) e)
+      (max-int (rest lst) (first lst))
+      (max-int (rest lst) e))))
+(defn get-max [lst]
+  (max-int lst (first lst)))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 13:}
+  Write a procedure, called \texttt{greater-than-five?}, that takes a
+  list of numbers, and replaces each number with \texttt{true} if the
+  number is greater than \texttt{5}, and \texttt{false} otherwise. For
+  example, given input \texttt{(list 5 4 7)}, it will return
+  \texttt{(list false false true)}. Hint: Use the function
+  \texttt{map} that we discussed in class.
+
+\paragraph{Answer 13:}~\begin{lstlisting}
+(defn greater-than-five? [lst] (map (fn [num] (> num 5)) lst))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 14:}
+Write a procedure, called \texttt{concat-three}, that takes three
+sequences (represented as lists), \texttt{x}, \texttt{y}, and
+\texttt{z}, and returns the concatenation of the three sequences. For
+example, given the sequences \texttt{(list 'a 'b)}, \texttt{(list 'b
+  'c)}, and \texttt{(list 'd 'e)}, the procedure should return
+\texttt{(list 'a 'b 'b 'c 'd 'e)}.
+
+\paragraph{Answer 14:} ~\begin{lstlisting}
+(defn concat-two [x y]
+  (if (empty? x)
+    y
+    (cons (first x) (concat-two (rest x) y))))
+(defn concat-three [x y z]
+  (concat-two (concat-two x y) z))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 15:}
+Write a procedure, called \texttt{sequence-to-power}, that takes a
+sequence (represented as a list) \texttt{x}, and a positive integer
+\texttt{n}, and returns the sequence \texttt{x}$^\texttt{n}$. For
+example, given the sequence \texttt{(list 'a 'b)} and the number
+\texttt{3}, the procedure should return \texttt{(list 'a 'b 'a 'b 'a
+  'b)}.
+
+\paragraph{Answer 15:}~\begin{lstlisting}
+(defn sequence-to-power [lst n] 
+  (if (zero? n)
+    (list)
+    (concat-two lst (sequence-to-power lst (- n 1)))))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 16:}
+Define $L$ as a language containing a single sequence,
+$L={a}$. Write a procedure \texttt{in-L?} that takes a sequence
+(represented as a list), and decides if it is a member of the language
+$L^*$. That is, given a sequence $x$, the procedure should return
+\texttt{true} if and only if $x$ is a member of $L^*$, and
+\texttt{false} otherwise.
+
+\paragraph{Answer 16:}~\begin{lstlisting}
+(defn in-L? [x]
+  (if (empty? x)
+    true
+    (if (= (quote a) (first x))
+      (in-L? (rest x))
+      false)))
+\end{lstlisting}
+
+\hrulefill
+\paragraph{Problem 17:}
+Let $A$ and $B$ be languages. We'll use $\textsc{concat}(A,B)$ to
+denote the concatenation of $A$ and $B$, in that order. Find an
+example of languages $A$ and $B$ such that
+$\textsc{concat}(A,B)=\textsc{concat}(B,A)$.
+
+\paragraph{Answer 17:} ~\begin{gather*}
+    A = \{a, b\}\\
+    B = \varnothing\\
+    \textsc{concat}(A,B) = \varnothing\\
+    \textsc{concat}(B,A) = \varnothing
+\end{gather*}
+
+\hrulefill
+\paragraph{Problem 18:}
+Let $A$ and $B$ be languages. Find an example of languages $A$ and $B$
+such that $\textsc{concat}(A,B)$ does not equal $\textsc{concat}(B,A)$
+
+\paragraph{Answer 18:}~\begin{gather*}
+    A = \{a, ab\}\\
+    B = \{bb, b\}\\
+    \textsc{concat}(A,B) = \{abb, ab, abbb\}\\
+    \textsc{concat}(B,A) = \{bba, bbab, ba, bab\}
+\end{gather*}
+
+\hrulefill
+\paragraph{Problem 19:}
+Find an example of a language $L$ such that $L=L^2$,
+i.e. $L=\textsc{concat}(L,L)$.
+
+\paragraph{Answer 19:} ~\begin{gather*}
+    L = \varnothing\\
+    \textsc{concat}(L,L) = \varnothing
+\end{gather*}
+
+\hrulefill
+\paragraph{Problem 20:}
+Argue that the intersection of two languages $L$ and $L'$ is always
+contained in $L$.
+
+\paragraph{Answer 20:} $L \cap L' = \{x\mid x \in L \cap x \in L'\}$. If something is in both $L$ and $L'$, it is definitely in $L$
+
+\hrulefill
+\paragraph{Problem 21:}
+Let $L_1$, $L_2$, $L_3$, and $L_4$ be languages. Argue that the union
+of Cartesian products $(L_1 \times L_3) \cup (L_2 \times L_4)$ is
+always contained in the Cartesian product of unions
+$(L_1 \cup L_2) \times (L_3 \cup L_4)$.
+
+\paragraph{Answer 21:} \begin{gather*}
+    (x,y) \in (L_1 \cup L_2) \times (L_3 \cup L_4)\\
+    (x \in L_1 \vee x \in L_2) \wedge (y \in L_3 \vee y \in L_4)\\
+    ((x \in L_1 \vee x \in L_2) \wedge y \in L_3) \vee ((x \in L_1 \vee x \in L_2) \wedge y \in L_4)\\
+    (x \in L_1 \wedge y \in L_3) \vee (x \in L_2 \wedge y \in L_3) \vee (x \in L_1 \wedge y \in L_4) \vee (x \in L_2 \wedge y \in L_4)\\
+    (x,y) \in (L_1 \times L_3) \cup (L_2 \times L_4) \cup (L_1 \times L_4) \cup (L_2 \times L_3)\\
+    (L_1 \times L_3) \cup (L_2 \times L_4) \in (L_1 \times L_3) \cup (L_2 \times L_4) \cup (L_1 \times L_4) \cup (L_2 \times L_3)
+\end{gather*}
+
+\hrulefill
+\paragraph{Problem 22:}
+Let $L$ and $L'$ be finite languages. Show that the number of elements
+in the Cartesian product $L \times L'$ is always equal to the number
+of elements in $L' \times L$.
+
+\paragraph{Answer 22:} \begin{gather*}
+    L \times L' = \{(x, y) \mid x \in L \text{ and } y \in L'\}\\
+    L' \times L = \{(x, y) \mid x \in L' \text{ and } y \in L\}\\
+    |L \times L'|  = |L|\cdot{|L'|}\\
+    |L' \times L|  = |L'|\cdot{|L|}\\
+    \therefore |L \times L'| = |L' \times L|
+\end{gather*}
+$|L \times L'|  = |L|\cdot{|L'|}$ because for every element in $L$, there is an element in $L'$ that can be associated with it. Likewise for $|L' \times L|  = |L'|\cdot{|L|}$ for every element in $L'$, there is an element in $L$ that can be associated with it. When multiplying two numbers $x$ and $y$, $x\cdot{y} = y\cdot{x}$. Therefore, $|L \times L'| = |L' \times L|$.
+
+\hrulefill
+\paragraph{Problem 23:}
+Suppose that the concatenation of a language L is equal to itself:
+$\texttt{concat}(L,L) = L$. Show that $L$ is either the empty set or
+an infinite language. (Remember that the empty set contains the null
+string.)
+
+\paragraph{Answer 23:}~\begin{gather*}
+    L^{*} = \bigcup\limits_{i=0}^{\infty} L^i \tag{Kleene Star}\\
+    L^{0} = \{\epsilon\}\\
+    \textsc{concat}(L^{0},L^{0}) = \{\epsilon\} = L^{0}\\
+     \textsc{concat}(L^{\aleph},L^{\aleph}) = L^{\aleph}
+\end{gather*}
+Given a language $L$, the Kleene Star of $L$, $L^{*}$ is given above. The empty set is $L^0 = \{\epsilon\}$. If one concatenates $L^0$ with $L^0$, or $\{\epsilon\}$ with $\{\epsilon\}$  he or she will still get $\{\epsilon\}$. If one concatenates the countable infinity, namely $L^{\aleph}$ with $L^{\aleph}$, he or she will still obtain $L^{\aleph}$. If $i$ is finite, this would not work because there would be a problem in the order of concatenation.
+\end{document}
